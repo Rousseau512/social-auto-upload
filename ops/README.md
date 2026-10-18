@@ -24,6 +24,6 @@
 
 出问题时按脚本最后打印的提示回滚：`git checkout <旧提交> && uv sync --frozen`；修好后先 `git checkout main`，再部署。
 
-跟上游：抖音或视频号改版导致出错时，或者每月一次，在笔记本上 `git fetch upstream && git merge upstream/main`，跑一遍不需要真号的测试，推到 fork 后再部署。我们对上游代码的改动要尽量少、尽量集中，合并时才不容易冲突。
+跟上游：抖音或视频号改版导致出错时，或者每月一次，在笔记本上 `git fetch upstream && git merge upstream/main`，跑一遍不需要真号的测试，推到 fork 后再部署。我们对上游代码的改动要尽量少、尽量集中，合并时才不容易冲突。目前改过的上游文件：`pyproject.toml`（补 `playwright` 依赖）、`uploader/xiaohongshu_uploader/main.py`（小红书一律有头运行，搜 `fork 改动`）。
 
 运行环境：Python 由 `mise.toml` 固定为 3.12（上游要求低于 3.13），依赖以 `uv.lock` 为准。上游漏写的 `playwright` 已经补进 `pyproject.toml`，不要再手动 `uv pip install`，否则下次同步会被删掉。
