@@ -1,7 +1,7 @@
 """扫描 9231 起的调试端口，把已登录抖音创作者中心的窗口导出成 sau 会话。
 
 会话存为 cookies/douyin_<抖音号>.json（权限 600），并追加到 cookies/accounts-douyin.tsv。
-只断开调试连接，不关浏览器。用法：python ops/login/export_douyin.py [N]
+窗口被关掉、只剩 Chrome 进程时，会先重开创作者中心再导出。只断开调试连接，不关浏览器。用法：python ops/login/export_douyin.py [N]
 """
 import asyncio
 import json
@@ -9,10 +9,11 @@ import os
 import re
 import sys
 import time
-import urllib.request
 from pathlib import Path
 
 from patchright.async_api import async_playwright
+
+from cdp_util import cdp_alive, ensure_page
 
 os.chdir(Path(__file__).resolve().parents[2])
 BASE_PORT = 9230
@@ -20,17 +21,10 @@ REGISTRY = "cookies/accounts-douyin.tsv"
 INFO_JS = "fetch('/web/api/media/user/info/', {credentials: 'include'}).then(r => r.json())"
 
 
-def cdp_alive(port):
-    try:
-        urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2)
-        return True
-    except Exception:
-        return False
-
-
 async def export_port(p, port):
     if not cdp_alive(port):
         return None
+    ensure_page(port, "creator.douyin.com", "https://creator.douyin.com/")
     browser = await p.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
     ctx = browser.contexts[0]
     page = next((pg for pg in ctx.pages if "creator.douyin.com" in pg.url), None)
@@ -64,8 +58,6 @@ async def main(n):
             try:
                 r = await export_port(p, BASE_PORT + i)
             except Exception as e:
-                # 窗口被关掉、只剩进程的 Chrome 连上去会报 "Browser context management is not supported"，
-                # 先用 curl -X PUT "http://127.0.0.1:<端口>/json/new?https://creator.douyin.com/" 重开页面
                 r = {"port": BASE_PORT + i, "status": f"出错：{str(e)[:150]}"}
             if r:
                 rows.append(r)

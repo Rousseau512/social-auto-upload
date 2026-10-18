@@ -12,7 +12,7 @@
 4. 收尾：`ops/login/close_windows.sh douyin`，关掉这些 Chrome（调试端口本机其他用户也能连），并把浏览器目录改名为 `browser-profiles/<平台>_<账号名>`。重新登录的号，旧目录会挪到 `browser-profiles/.replaced/` 留底。
 5. 验证：`sau douyin check --account <账号名>`。视频号另跑 `python ops/login/verify_tencent.py <账号名>…`，因为 `sau tencent check` 只看页面有没有跳回登录页。
 
-窗口被误关时，Chrome 进程通常还在：`curl -X PUT "http://127.0.0.1:<端口>/json/new?<后台网址>"` 重开页面后再导出就行。
+扫完码把窗口关掉也没关系：Chrome 进程和登录态都还在，导出脚本发现没有后台页面时会自己重开一个，并打印一行提示。
 
 ## 不进 git 的运行数据
 

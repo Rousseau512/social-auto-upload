@@ -2,7 +2,7 @@
 
 会话存为 cookies/tencent_<视频号ID>.json（权限 600），并追加到 cookies/accounts-tencent.tsv。
 视频号的登录态有一部分在 localStorage，经调试端口导出时 storage_state 拿不到，这里从页面补写。
-只断开调试连接，不关浏览器。用法：python ops/login/export_tencent.py [N] [--dry]（--dry 只识别不写文件）
+窗口被关掉、只剩 Chrome 进程时，会先重开后台页再导出。只断开调试连接，不关浏览器。用法：python ops/login/export_tencent.py [N] [--dry]（--dry 只识别不写文件）
 """
 import asyncio
 import json
@@ -13,6 +13,8 @@ import time
 from pathlib import Path
 
 from patchright.async_api import async_playwright
+
+from cdp_util import cdp_alive, ensure_page
 
 os.chdir(Path(__file__).resolve().parents[2])
 BASE_PORT = 9240
@@ -35,6 +37,9 @@ def finder_user(data):
 
 
 async def export_port(p, port, dry):
+    if not cdp_alive(port):
+        return None
+    ensure_page(port, "channels.weixin.qq.com", "https://channels.weixin.qq.com/platform/")
     browser = await p.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
     ctx = browser.contexts[0]
     page = next((pg for pg in ctx.pages if "channels.weixin.qq.com" in pg.url), None)
@@ -83,7 +88,8 @@ async def main(n, dry):
                 r = await export_port(p, BASE_PORT + i, dry)
             except Exception as e:
                 r = {"port": BASE_PORT + i, "status": f"出错：{str(e)[:150]}"}
-            rows.append(r)
+            if r:
+                rows.append(r)
     new = [r for r in rows if r["status"] == "已导出"]
     if new:
         exists = os.path.exists(REGISTRY)
@@ -95,6 +101,8 @@ async def main(n, dry):
                         f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{r['port']}\n")
     for r in rows:
         print(json.dumps(r, ensure_ascii=False))
+    if not rows:
+        print("没有找到打开的登录窗口")
 
 
 if __name__ == "__main__":
