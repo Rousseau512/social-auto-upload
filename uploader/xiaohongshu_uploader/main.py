@@ -28,6 +28,9 @@ XHS_LOGIN_BOX_SELECTOR = "div[class*='login-box']"
 XHS_LOGIN_SWITCH_SELECTOR = "img.css-wemwzq"
 XIAOHONGSHU_PUBLISH_STRATEGY_IMMEDIATE = "immediate"
 XIAOHONGSHU_PUBLISH_STRATEGY_SCHEDULED = "scheduled"
+# fork 改动：小红书的检查、登录、发布一律有头运行，这是作者说明的防风控做法；
+# 传进来的 headless（命令行 --headless、conf.py 的 LOCAL_CHROME_HEADLESS）对小红书不生效。
+XHS_HEADLESS = False
 
 
 def _build_xhs_creator_url(path: str) -> str:
@@ -180,9 +183,9 @@ async def cookie_auth(account_file):
 
     async with async_playwright() as playwright:
         if LOCAL_CHROME_PATH:
-            browser = await playwright.chromium.launch(headless=True, executable_path=LOCAL_CHROME_PATH)
+            browser = await playwright.chromium.launch(headless=XHS_HEADLESS, executable_path=LOCAL_CHROME_PATH)
         else:
-            browser = await playwright.chromium.launch(headless=True, channel="chromium")
+            browser = await playwright.chromium.launch(headless=XHS_HEADLESS, channel="chromium")
         try:
             context = await browser.new_context(storage_state=account_file)
             context = await set_init_script(context)
@@ -246,6 +249,7 @@ async def xiaohongshu_cookie_gen(
     max_checks: int = 100,
     headless: bool = LOCAL_CHROME_HEADLESS,
 ):
+    headless = XHS_HEADLESS  # fork 改动，见文件开头
     if headless:
         xiaohongshu_logger.info(_msg("🖼️", "小红书登录将以无头模式运行，小人会输出终端二维码并保存本地二维码图片"))
 
@@ -321,7 +325,7 @@ class XiaoHongShuBaseUploader(BaseVideoUploader):
         self.debug = debug
         self.date_format = "%Y年%m月%d日 %H:%M"
         self.local_executable_path = LOCAL_CHROME_PATH
-        self.headless = headless
+        self.headless = XHS_HEADLESS  # fork 改动，见文件开头
 
     async def validate_base_args(self):
         if not os.path.exists(self.account_file):
