@@ -189,3 +189,6 @@ uploadFile
 videoFile
 
 /uploader/bilibili_uploader/qrcode.png
+
+# ops：每个账号的独立浏览器目录（登录态，只在本机）
+browser-profiles/
