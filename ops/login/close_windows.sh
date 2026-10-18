@@ -1,12 +1,12 @@
 #!/bin/bash
 # 关掉某个平台 pending-* 登录窗口的 Chrome，并按账号表里的端口把浏览器目录改名为 <平台>_<账号>。
 # 只认这个窗口打开之后才导出的记录；没导出的窗口目录原样留下。
-# 用法：ops/login/close_windows.sh [douyin|tencent]（先跑完导出再关）
+# 用法：ops/login/close_windows.sh [douyin|tencent|xiaohongshu]（先跑完导出再关）
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 platform=${1:-douyin}
 case "$platform" in
-  douyin|tencent) registry="cookies/accounts-${platform}.tsv"; prefix="pending-${platform}-" ;;
+  douyin|tencent|xiaohongshu) registry="cookies/accounts-${platform}.tsv"; prefix="pending-${platform}-" ;;
   *) echo "未知平台：$platform"; exit 2 ;;
 esac
 map=$(ps -axo command= | grep -E "Google Chrome --user-data-dir=.*/browser-profiles/${prefix}" | grep -v grep \

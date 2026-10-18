@@ -1,13 +1,14 @@
 #!/bin/bash
 # 同时打开 N 个创作者后台登录窗口：每个窗口用独立浏览器目录和独立调试端口，层叠摆放；端口被占就跳过。
-# 用法：ops/login/open_windows.sh [N] [douyin|tencent]
-#   douyin：抖音创作者中心，端口 9231 起；tencent：视频号助手，端口 9241 起
+# 用法：ops/login/open_windows.sh [N] [douyin|tencent|xiaohongshu]
+#   douyin：抖音创作者中心，端口 9231 起；tencent：视频号助手，端口 9241 起；xiaohongshu：小红书创作服务平台，端口 9251 起
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 n=${1:-5}; platform=${2:-douyin}
 case "$platform" in
   douyin)  base=9230; url="https://creator.douyin.com/" ;;
   tencent) base=9240; url="https://channels.weixin.qq.com/login.html" ;;
+  xiaohongshu) base=9250; url="https://creator.xiaohongshu.com/login" ;;
   *) echo "未知平台：$platform"; exit 2 ;;
 esac
 stamp=$(date +%Y%m%d%H%M%S)
