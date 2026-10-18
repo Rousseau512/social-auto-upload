@@ -68,8 +68,12 @@ async def export_port(p, port, dry):
         raw = {"error": str(e)[:150]}
     info = user_info(raw)
     red_id, user_id, nickname = info["red_id"], info["user_id"], info["nickname"]
-    if dry or not red_id:
+    if not red_id:
+        # 接口返回里有绑定手机号，只在识别失败、需要排查时才打印，打印前去掉
         shown = {k: v for k, v in raw.items() if k != "text"}
+        for v in shown.values():
+            if isinstance(v, dict) and isinstance(v.get("data"), dict):
+                v["data"].pop("phone", None)
         print(f"[{port}] 接口返回：{json.dumps(shown, ensure_ascii=False)[:600]}")
         print(f"[{port}] 页面文字：{raw.get('text', '')[:300]!r}")
     key = re.sub(r"[^A-Za-z0-9_.-]", "_", red_id or user_id) or f"port{port}"
