@@ -12,6 +12,8 @@ dependencies = [
   "loguru==0.7.3",
   "opencv-python>=4.13.0.92",
   "patchright==1.58.2",
+  # 百家号、微博等上传模块导入的是原版 playwright，上游漏写了这个依赖
+  "playwright==1.58.0",
   "qrcode==8.2",
   "requests==2.32.3",
   "segno>=1.6.6",
