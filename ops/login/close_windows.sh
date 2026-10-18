@@ -19,8 +19,14 @@ ps -axo command= | grep -E "browser-profiles/${prefix}" | grep -v grep >/dev/nul
 while read -r port dir; do
   [ -n "$port" ] || continue
   acct=$(awk -F'\t' -v p="$port" 'NR>1 && $6==p {a=$1} END{print a}' "$registry" 2>/dev/null)
-  if [ -n "$acct" ] && [ ! -e "browser-profiles/${platform}_${acct}" ]; then
-    mv "$dir" "browser-profiles/${platform}_${acct}" && echo "$port -> browser-profiles/${platform}_${acct}"
+  if [ -n "$acct" ]; then
+    target="browser-profiles/${platform}_${acct}"
+    if [ -e "$target" ]; then
+      # 重新登录的号：旧目录挪到 .replaced/ 留底，换上这次登录的目录
+      mkdir -p browser-profiles/.replaced
+      mv "$target" "browser-profiles/.replaced/${platform}_${acct}-$(date +%Y%m%d%H%M%S)"
+    fi
+    mv "$dir" "$target" && echo "$port -> $target"
   else
     echo "$port 未改名（acct=$acct）"
   fi
