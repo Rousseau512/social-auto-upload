@@ -31,6 +31,9 @@ XIAOHONGSHU_PUBLISH_STRATEGY_SCHEDULED = "scheduled"
 # fork 改动：小红书的检查、登录、发布一律有头运行，这是作者说明的防风控做法；
 # 传进来的 headless（命令行 --headless、conf.py 的 LOCAL_CHROME_HEADLESS）对小红书不生效。
 XHS_HEADLESS = False
+# fork 改动：发布页会从视频 CDN 下载 ffmpeg-core.wasm 等大文件，CDN 慢时等 load 事件会超过 30 秒，
+# 检查被误判成失效、发布中途报错。打开页面只等 DOM 出来，判断发布成功只看网址有没有跳转。
+XHS_PAGE_WAIT_UNTIL = "domcontentloaded"
 
 
 def _build_xhs_creator_url(path: str) -> str:
@@ -193,7 +196,8 @@ async def cookie_auth(account_file):
             await page.goto(
                 _build_xhs_creator_url(
                     "/publish/publish?from=homepage&target=video"
-                )
+                ),
+                wait_until=XHS_PAGE_WAIT_UNTIL,
             )
             await page.wait_for_timeout(3000)
 
@@ -630,8 +634,8 @@ class XiaoHongShuVideo(XiaoHongShuBaseUploader):
         publish_url = _build_xhs_creator_url(
             "/publish/publish?from=homepage&target=video"
         )
-        await page.goto(publish_url)
-        await page.wait_for_url(publish_url)
+        await page.goto(publish_url, wait_until=XHS_PAGE_WAIT_UNTIL)
+        await page.wait_for_url(publish_url, wait_until=XHS_PAGE_WAIT_UNTIL)
         await page.locator("div[class^='upload-content'] input[class='upload-input']").set_input_files(self.file_path)
 
         while True:
@@ -692,7 +696,8 @@ class XiaoHongShuVideo(XiaoHongShuBaseUploader):
                     await page.locator('button:has-text("发布")').click()
                 await page.wait_for_url(
                     XHS_PUBLISH_SUCCESS_URL_PATTERN,
-                    timeout=3000
+                    timeout=3000,
+                    wait_until="commit",  # fork 改动，见文件开头
                 )
                 xiaohongshu_logger.success(_msg("🥳", "视频发布成功，小人开心收工"))
                 break
@@ -778,8 +783,8 @@ class XiaoHongShuNote(XiaoHongShuBaseUploader):
         publish_url = _build_xhs_creator_url(
             "/publish/publish?from=homepage&target=image"
         )
-        await page.goto(publish_url)
-        await page.wait_for_url(publish_url)
+        await page.goto(publish_url, wait_until=XHS_PAGE_WAIT_UNTIL)
+        await page.wait_for_url(publish_url, wait_until=XHS_PAGE_WAIT_UNTIL)
 
         upload_input = page.locator('input[type="file"][accept*="image"]').first
         if not await upload_input.count():
@@ -815,7 +820,8 @@ class XiaoHongShuNote(XiaoHongShuBaseUploader):
                     await page.locator('button:has-text("发布")').click()
                 await page.wait_for_url(
                     XHS_PUBLISH_SUCCESS_URL_PATTERN,
-                    timeout=3000
+                    timeout=3000,
+                    wait_until="commit",  # fork 改动，见文件开头
                 )
                 xiaohongshu_logger.success(_msg("🥳", "图文发布成功，小人开心收工"))
                 break
