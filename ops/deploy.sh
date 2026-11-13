@@ -15,7 +15,8 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 
 before=$(git rev-parse --short HEAD)
-git pull --ff-only
+# 笔记本上同步上游是 rebase 后 force push，--ff-only 会拒绝；Mac mini 上没有自己的提交时，结果就是新的 origin/main
+git pull --rebase
 after=$(git rev-parse --short HEAD)
 echo "代码：${before} -> ${after}"
 

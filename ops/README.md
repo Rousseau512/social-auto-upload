@@ -20,10 +20,17 @@
 
 ## 部署
 
-代码只在笔记本上改：改完提交、推到 fork（`origin`），再到 Mac mini 的 Herdr pane 里运行 `ops/deploy.sh`。它会检查工作区是否干净，然后 `git pull --ff-only`、`uv sync --frozen`、补装 patchright 的 Chromium、把会话文件权限改成 600，最后用一个抖音号跑 `sau douyin check` 做冒烟。不要在发布任务进行中部署，也不让 Mac mini 定时自动拉代码。
+代码只在笔记本上改：改完提交、推到 fork（`origin`），再到 Mac mini 的 Herdr pane 里运行 `ops/deploy.sh`。它会检查工作区是否干净，然后 `git pull --rebase`（同步上游会改写 fork 的历史，见下文）、`uv sync --frozen`、补装 patchright 的 Chromium、把会话文件权限改成 600，最后用一个抖音号跑 `sau douyin check` 做冒烟。不要在发布任务进行中部署，也不让 Mac mini 定时自动拉代码。
 
 出问题时按脚本最后打印的提示回滚：`git checkout <旧提交> && uv sync --frozen`；修好后先 `git checkout main`，再部署。
 
-跟上游：抖音或视频号改版导致出错时，或者每月一次，在笔记本上 `git fetch upstream && git merge upstream/main`，跑一遍不需要真号的测试，推到 fork 后再部署。我们对上游代码的改动要尽量少、尽量集中，合并时才不容易冲突。目前改过的上游文件：`pyproject.toml`（补 `playwright` 依赖）、`uploader/xiaohongshu_uploader/main.py`（小红书一律有头运行；打开页面只等 DOM、判断发布成功只看网址，避免视频 CDN 慢时误判失效；都搜 `fork 改动`）。
+跟上游：抖音或视频号改版导致出错时，或者每月一次，在笔记本上同步。我们的改动是接在上游之后的一串提交（`git log --oneline upstream/main..main` 列出的就是全部），同步用 rebase 不用 merge：这样任何时候都看得清相对上游改了什么，上游自己实现了同样的东西时，也能把对应的提交整个丢掉。
+
+1. `git fetch upstream && git rebase upstream/main`。有冲突就解决后 `git rebase --continue`，想放弃就 `git rebase --abort` 回到原样。
+2. 核对补丁有没有走样：`git range-diff $(git merge-base origin/main upstream/main)..origin/main upstream/main..main`，标 `=` 的提交和原来一模一样。
+3. `uv lock --check`：上游改了 `pyproject.toml` 却没更新 `uv.lock` 时会报错，这时跑 `uv lock`，单独提交。
+4. 跑不需要真号的检查（`uv sync --frozen`、`.venv/bin/sau --help`），然后 `git push --force-with-lease origin main`，再部署。
+
+修改已有的补丁时用 `git commit --fixup=<那个补丁的提交>`，同步时加 `--autosquash` 并回原提交，不要在后面堆修正提交。对上游代码的改动要尽量少、尽量集中，rebase 时才不容易冲突。目前改过的上游文件：`pyproject.toml` 和 `uv.lock`（补 `playwright` 依赖、补上游漏更新的锁文件）、`uploader/xiaohongshu_uploader/main.py`（小红书一律有头运行；打开页面只等 DOM、判断发布成功只看网址，避免视频 CDN 慢时误判失效；都搜 `fork 改动`）。
 
 运行环境：Python 由 `mise.toml` 固定为 3.12（上游要求低于 3.13），依赖以 `uv.lock` 为准。上游漏写的 `playwright` 已经补进 `pyproject.toml`，不要再手动 `uv pip install`，否则下次同步会被删掉。
